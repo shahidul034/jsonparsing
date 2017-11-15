@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.provider.Settings.System;
+import android.support.v7.app.AlertDialog;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
@@ -25,15 +26,15 @@ import javax.net.ssl.HttpsURLConnection;
 public class MainActivity extends Activity implements OnClickListener {
 
     Button btn;
-
+    TextView tv;
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         btn = (Button) findViewById(R.id.button);
-        // because we implement OnClickListener we only have to pass "this"
-        // (much easier)
+        tv = (TextView) findViewById(R.id.textView);
         btn.setOnClickListener(this);
+
     }
 
     public void onClick(View view) {
@@ -47,82 +48,47 @@ public class MainActivity extends Activity implements OnClickListener {
 
         @Override
         protected String doInBackground(String... params) {
-            String jsonfeed="";
-            URL url= null;
+            URL url;
+            String data="";
             try {
                 url = new URL(params[0]);
-            } catch (MalformedURLException e) {
-                e.printStackTrace();
-            }
-            HttpsURLConnection conn= null;
-            try {
-                conn = (HttpsURLConnection) url.openConnection();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-            InputStream is=null;
-            try {
-                 is=conn.getInputStream();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-            BufferedReader br= null;
-            try {
-                br = new BufferedReader(new InputStreamReader(url.openStream()));
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-            String line="";
-            while(line!=null){
-                try {
-                    line=br.readLine();
-                } catch (IOException e) {
-                    e.printStackTrace();
+                HttpsURLConnection conn = (HttpsURLConnection) url.openConnection();
+                InputStream stream = conn.getInputStream();
+                BufferedReader br = new BufferedReader(new InputStreamReader(stream));
+                String line;
+                while ((line = br.readLine())!=null) {
+                    data += line;
                 }
-                jsonfeed+=line;
-            }
-            JSONObject job=new JSONObject();
-            JSONArray jarr = null;
-            try {
-                 jarr=job.getJSONArray("contacts");
-            } catch (JSONException e) {
-                e.printStackTrace();
-            }
-            JSONObject job2= new JSONObject();
-            try {
-                job2 = jarr.getJSONObject(0);
-            } catch (JSONException e) {
-                e.printStackTrace();
-            }
-            String name="";
-            try {
-                name=job2.getString("name");
-            } catch (JSONException e) {
-                e.printStackTrace();
-            }
-            JSONObject job3= null;
-            try {
-                job3 = job2.getJSONObject("phone");
-            } catch (JSONException e) {
-                e.printStackTrace();
-            }
-            String mob="";
-            try {
-                mob=job3.getString("mobile");
-            } catch (JSONException e) {
-                e.printStackTrace();
-            }
+            } catch (Exception e) {
 
-            String s=name+" "+mob;
-            return s;
+
+            }
+            return data;
         }
 
         @Override
-        protected void onPostExecute(String result) {
-            TextView txt = (TextView) findViewById(R.id.textView);
-            txt.setText(result);
+        protected void onPostExecute(String s) {
+
+            String txt = "";
+            try {
+                JSONObject full = new JSONObject(s);
+                JSONArray contacts = full.getJSONArray("contacts");
+                for (int i = 0; i < contacts.length(); i++) {
+                    JSONObject singleContact = contacts.getJSONObject(i);
+                    String name = singleContact.getString("name");
+                    String email = singleContact.getString("email");
+                    JSONObject phone = singleContact.getJSONObject("phone");
+                    String mobile = phone.getString("mobile");
+                    txt += name + " " + email + " " + mobile + "\n";
+                }
+            } catch (Exception e) {
+                tv.setText("Parsing Error");
+            }
+            tv.setText(txt);
 
         }
+
+
 
         @Override
         protected void onPreExecute() {}
